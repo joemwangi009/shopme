@@ -3,21 +3,41 @@ import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+// Check if Stripe is configured
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+if (!stripeSecretKey) {
+  console.warn('STRIPE_SECRET_KEY not configured - payment functionality will be disabled')
+}
+
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null
 
 export async function POST(req: Request) {
   try {
+    // Check if Stripe is configured
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Payment processing not configured' },
+        { status: 503 }
+      )
+    }
+
     const session = await auth()
 
     if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
     const body = await req.json()
     const { orderId } = body
 
     if (!orderId) {
-      return new NextResponse('Order ID is required', { status: 400 })
+      return NextResponse.json(
+        { error: 'Order ID is required' },
+        { status: 400 }
+      )
     }
 
     // Get the order
@@ -37,12 +57,18 @@ export async function POST(req: Request) {
     })
 
     if (!order) {
-      return new NextResponse('Order not found', { status: 404 })
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 }
+      )
     }
 
     // If order is already paid, return error
     if (order.stripePaymentId) {
-      return new NextResponse('Order is already paid', { status: 400 })
+      return NextResponse.json(
+        { error: 'Order is already paid' },
+        { status: 400 }
+      )
     }
 
     // Calculate final amount including tax and shipping
@@ -79,6 +105,9 @@ export async function POST(req: Request) {
     })
   } catch (error) {
     console.error('[PAYMENT_ERROR]', error)
-    return new NextResponse('Internal error', { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal error' },
+      { status: 500 }
+    )
   }
 }
