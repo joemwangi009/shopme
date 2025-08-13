@@ -8,10 +8,10 @@ import { Separator } from '@/components/ui/separator'
 
 export function OrderSummary() {
   const cart = useCart()
-  const items = cart.items
+  const items = cart?.items || []
 
   const subtotal = items.reduce((total, item) => {
-    return total + item.price * item.quantity
+    return total + (item?.price || 0) * (item?.quantity || 0)
   }, 0)
 
   const shipping = 10 // Fixed shipping cost
@@ -22,20 +22,20 @@ export function OrderSummary() {
     <div className='space-y-6'>
       <ScrollArea className='h-[300px] pr-4'>
         {items.map((item) => (
-          <div key={item.id} className='flex items-start space-x-4 py-4'>
+          <div key={item?.id || 'unknown'} className='flex items-start space-x-4 py-4'>
             <div className='relative h-16 w-16 overflow-hidden rounded-lg'>
               <Image
-                src={item.image}
-                alt={item.name}
+                src={item?.image || '/placeholder-image.jpg'}
+                alt={item?.name || 'Product'}
                 fill
                 className='object-cover'
               />
             </div>
             <div className='flex-1 space-y-1'>
-              <h3 className='font-medium'>{item.name}</h3>
-              <p className='text-sm text-gray-500'>Qty: {item.quantity}</p>
+              <h3 className='font-medium'>{item?.name || 'Unknown Product'}</h3>
+              <p className='text-sm text-gray-500'>Qty: {item?.quantity || 0}</p>
               <p className='text-sm font-medium'>
-                {formatPrice(item.price * item.quantity)}
+                {formatPrice((item?.price || 0) * (item?.quantity || 0))}
               </p>
             </div>
           </div>

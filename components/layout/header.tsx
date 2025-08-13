@@ -99,13 +99,13 @@ export function Header() {
               </Link>
             </Button>
             <CartBadge />
-            {session ? (
+            {session && session.user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='ghost' className='flex items-center gap-2'>
                     <User className='h-5 w-5' />
                     <span className='hidden sm:inline-block'>
-                      {session.user.name}
+                      {session.user?.name || 'User'}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -113,10 +113,10 @@ export function Header() {
                   <DropdownMenuLabel className='font-normal'>
                     <div className='flex flex-col space-y-1'>
                       <p className='text-sm font-medium leading-none'>
-                        {session.user.name}
+                        {session.user?.name || 'User'}
                       </p>
                       <p className='text-xs leading-none text-muted-foreground'>
-                        {session.user.email}
+                        {session.user?.email || 'No email'}
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -130,7 +130,7 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link href='/dashboard/addresses'>Addresses</Link>
                   </DropdownMenuItem>
-                  {session.user.role === 'ADMIN' && (
+                  {session.user?.role === 'ADMIN' && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>

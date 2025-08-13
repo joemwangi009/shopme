@@ -24,6 +24,11 @@ export const useCart = create<CartStore>()(
     (set, get) => ({
       items: [],
       addItem: (item) => {
+        if (!item || !item.productId || !item.name || typeof item.price !== 'number') {
+          console.warn('Invalid item data provided to cart:', item)
+          return
+        }
+        
         set((state) => {
           const existingItem = state.items.find(
             (i) => i.productId === item.productId
@@ -48,12 +53,14 @@ export const useCart = create<CartStore>()(
         })
       },
       removeItem: (productId) => {
+        if (!productId) return
+        
         set((state) => ({
           items: state.items.filter((item) => item.productId !== productId),
         }))
       },
       updateQuantity: (productId, quantity) => {
-        if (quantity < 1) return // Prevent negative quantities
+        if (!productId || quantity < 1) return // Prevent negative quantities
 
         set((state) => ({
           items: state.items.map((item) =>
@@ -64,7 +71,7 @@ export const useCart = create<CartStore>()(
       clearCart: () => set({ items: [] }),
       get total() {
         return get().items.reduce(
-          (total, item) => total + item.price * item.quantity,
+          (total, item) => total + (item?.price || 0) * (item?.quantity || 0),
           0
         )
       },

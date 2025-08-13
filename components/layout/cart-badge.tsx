@@ -7,7 +7,7 @@ import { useCart } from '@/store/use-cart'
 
 export function CartBadge() {
   const cart = useCart()
-  const itemCount = cart.items.reduce((total, item) => total + item.quantity, 0)
+  const itemCount = cart?.items?.reduce((total, item) => total + (item?.quantity || 0), 0) || 0
 
   return (
     <Button variant='ghost' size='icon' asChild className='relative'>
