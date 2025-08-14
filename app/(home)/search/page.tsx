@@ -100,7 +100,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               loading={false}
               currentPage={currentPage}
               totalPages={totalPages}
-              onPageChange={(_page) => {
+              onPageChange={() => {
                 // This will be handled by the ProductSidebar component
                 // or we can implement client-side navigation here
               }}
