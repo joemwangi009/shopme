@@ -19,7 +19,7 @@ interface AuthUser {
   name: string;
   image: string | null;
   password: string;
-  role: string;
+  role: 'USER' | 'ADMIN';
 }
 
 declare module 'next-auth' {
@@ -28,6 +28,10 @@ declare module 'next-auth' {
       id: string
       role?: 'USER' | 'ADMIN'
     } & DefaultSession['user']
+  }
+  
+  interface User {
+    role?: 'USER' | 'ADMIN'
   }
 }
 
@@ -71,7 +75,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: userData.name as string,
           image: userData.image as string | null,
           password: userData.password as string,
-          role: userData.role as string,
+          role: (userData.role as string) === 'ADMIN' ? 'ADMIN' : 'USER',
         }
 
         if (!user || !user.password) {
@@ -97,7 +101,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role
+        token.role = user.role
         token.id = user.id
       }
       return token
