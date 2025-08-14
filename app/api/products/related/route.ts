@@ -59,7 +59,13 @@ export async function GET(request: NextRequest) {
       stock: row.stock,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
-      reviews: Array.isArray(row.reviews) ? row.reviews.map((review: any) => ({
+      reviews: Array.isArray(row.reviews) ? row.reviews.map((review: {
+        id: string;
+        rating: number;
+        comment: string;
+        userId: string;
+        createdAt: string;
+      }) => ({
         id: review.id,
         rating: review.rating,
         comment: review.comment,

@@ -147,7 +147,7 @@ export async function POST(req: Request) {
           `DELETE FROM "Cart" WHERE "userId" = $1`,
           [session.user.id]
         )
-      } catch (error) {
+      } catch {
         // Ignore error if cart doesn't exist
       }
 

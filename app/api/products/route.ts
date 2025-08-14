@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     // Build WHERE conditions
     const conditions: string[] = []
-    const params: any[] = []
+    const params: (string | number)[] = []
     let paramCount = 0
 
     // Price filters

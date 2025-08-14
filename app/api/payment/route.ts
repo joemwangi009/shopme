@@ -75,20 +75,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // Get order items with product details
-    const itemsResult = await db.query(`
-      SELECT 
-        oi.id,
-        oi.quantity,
-        oi.price,
-        p.id as product_id,
-        p.name as product_name,
-        p.images as product_images
-      FROM "OrderItem" oi
-      JOIN "Product" p ON oi."productId" = p.id
-      WHERE oi."orderId" = $1
-    `, [orderId])
-
     // Calculate final amount including tax and shipping
     const subtotal = parseFloat(order.total)
     const shipping = 10 // Fixed shipping cost

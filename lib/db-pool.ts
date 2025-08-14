@@ -21,11 +21,11 @@ class DatabasePool {
     });
 
     // Handle pool connection events
-    this.pool.on('connect', (client) => {
+    this.pool.on('connect', () => {
       console.log('🔌 New client connected to database pool');
     });
 
-    this.pool.on('remove', (client) => {
+    this.pool.on('remove', () => {
       console.log('🔌 Client removed from database pool');
     });
   }
@@ -39,7 +39,7 @@ class DatabasePool {
   }
 
   // Execute a query with parameters
-  async query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+  async query<T = unknown>(text: string, params?: (string | number | boolean | Date | null)[]): Promise<QueryResult<T>> {
     const start = Date.now();
     try {
       const result = await this.pool.query(text, params);
@@ -302,7 +302,13 @@ export class DatabaseHelpers {
   }
 
   // Sample queries for common operations
-  static async getUsers(limit: number = 10): Promise<any[]> {
+  static async getUsers(limit: number = 10): Promise<Array<{
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    createdAt: Date;
+  }>> {
     const result = await db.query(
       'SELECT id, name, email, role, "createdAt" FROM "User" ORDER BY "createdAt" DESC LIMIT $1',
       [limit]
@@ -310,13 +316,24 @@ export class DatabaseHelpers {
     return result.rows;
   }
 
-  static async getProducts(categoryId?: string, limit: number = 20): Promise<any[]> {
+  static async getProducts(categoryId?: string, limit: number = 20): Promise<Array<{
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    images: string[];
+    categoryId: string;
+    stock: number;
+    createdAt: Date;
+    updatedAt: Date;
+    categoryName: string;
+  }>> {
     let query = `
       SELECT p.*, c.name as "categoryName" 
       FROM "Product" p 
       JOIN "Category" c ON p."categoryId" = c.id
     `;
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (categoryId) {
       query += ' WHERE p."categoryId" = $1';
@@ -330,7 +347,12 @@ export class DatabaseHelpers {
     return result.rows;
   }
 
-  static async getOrderSummary(): Promise<any> {
+  static async getOrderSummary(): Promise<{
+    totalOrders: string;
+    totalRevenue: string;
+    avgOrderValue: string;
+    uniqueCustomers: string;
+  }> {
     const result = await db.query(`
       SELECT 
         COUNT(*) as "totalOrders",
