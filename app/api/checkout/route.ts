@@ -1,9 +1,34 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db-pool'
 import Stripe from 'stripe'
 import { auth } from '@/auth'
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+}
+
+interface ShippingAddress {
+  id: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
+interface CheckoutBody {
+  items: CartItem[];
+  shippingAddress: ShippingAddress;
+}
+
+interface Order {
+  id: string;
+  total: number;
+}
 
 // Check if Stripe is configured
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY
@@ -32,7 +57,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const body = await req.json()
+    const body: CheckoutBody = await req.json()
     const { items, shippingAddress } = body
 
     if (!items?.length || !shippingAddress) {
@@ -44,12 +69,12 @@ export async function POST(req: Request) {
 
     // Calculate total
     const total = items.reduce(
-      (total: number, item: any) => total + item.price * item.quantity,
+      (sum: number, item: CartItem) => sum + item.price * item.quantity,
       0
     )
 
     // Create order using transaction
-    const order = await db.transaction(async (client) => {
+    const order: Order = await db.transaction(async (client) => {
       // Create order
       const orderId = 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
       
@@ -73,7 +98,7 @@ export async function POST(req: Request) {
     })
 
     // Create Stripe payment intent
-    const lineItems = items.map((item: any) => ({
+    const lineItems = items.map((item: CartItem) => ({
       price_data: {
         currency: 'usd',
         product_data: {

@@ -3,6 +3,26 @@ import { auth } from '@/auth'
 import { db } from '@/lib/db-pool'
 import * as z from 'zod'
 
+interface DBUser {
+  id: unknown;
+  name: unknown;
+  email: unknown;
+  image: unknown;
+  role: unknown;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 const profileSchema = z.object({
   name: z
     .string()
@@ -29,7 +49,7 @@ export async function PATCH(req: Request) {
     const { name, email } = profileSchema.parse(body)
 
     // Check if email is already taken by another user
-    const existingUserResult = await db.query(
+    const existingUserResult = await db.query<DBUser>(
       'SELECT id FROM "User" WHERE email = $1 AND id != $2',
       [email, session.user.id]
     )
@@ -39,7 +59,7 @@ export async function PATCH(req: Request) {
     }
 
     // Update the user
-    const updateResult = await db.query(
+    const updateResult = await db.query<DBUser>(
       `UPDATE "User" 
        SET name = $1, email = $2, "updatedAt" = CURRENT_TIMESTAMP
        WHERE id = $3
@@ -47,10 +67,20 @@ export async function PATCH(req: Request) {
       [name, email, session.user.id]
     )
 
-    const updatedUser = updateResult.rows[0]
+    const updatedUserData = updateResult.rows[0]
 
-    if (!updatedUser) {
+    if (!updatedUserData) {
       return new NextResponse('User not found', { status: 404 })
+    }
+
+    const updatedUser: User = {
+      id: updatedUserData.id as string,
+      name: updatedUserData.name as string,
+      email: updatedUserData.email as string,
+      image: updatedUserData.image as string | null,
+      role: updatedUserData.role as string,
+      createdAt: new Date(updatedUserData.createdAt as string),
+      updatedAt: new Date(updatedUserData.updatedAt as string)
     }
 
     return NextResponse.json({
@@ -59,8 +89,8 @@ export async function PATCH(req: Request) {
       email: updatedUser.email,
       image: updatedUser.image,
       role: updatedUser.role,
-      createdAt: new Date(updatedUser.createdAt),
-      updatedAt: new Date(updatedUser.updatedAt)
+      createdAt: updatedUser.createdAt,
+      updatedAt: updatedUser.updatedAt
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
