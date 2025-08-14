@@ -1,5 +1,6 @@
 import { db } from '@/lib/db-pool'
 import { startOfDay, subDays, format } from 'date-fns'
+import { OrderStatus } from '@prisma/client'
 
 interface RevenueData {
   date: string
@@ -14,7 +15,7 @@ interface OrderStat {
 interface RecentOrder {
   id: string
   total: number
-  status: string
+  status: OrderStatus
   createdAt: Date
   user: {
     name: string
@@ -93,7 +94,7 @@ export async function getRecentOrders(limit: number = 5): Promise<RecentOrder[]>
   return result.rows.map((order): RecentOrder => ({
     id: order.id as string,
     total: parseFloat(order.total as string),
-    status: order.status as string,
+    status: order.status as OrderStatus,
     createdAt: new Date(order.createdAt as string),
     user: {
       name: order.user_name as string
