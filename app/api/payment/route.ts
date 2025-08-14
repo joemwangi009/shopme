@@ -3,6 +3,32 @@ import { auth } from '@/auth'
 import { db } from '@/lib/db-pool'
 import Stripe from 'stripe'
 
+interface DBOrder {
+  id: unknown
+  userId: unknown
+  total: unknown
+  stripePaymentId: unknown
+  status: unknown
+  street: unknown
+  city: unknown
+  state: unknown
+  postalCode: unknown
+  country: unknown
+}
+
+interface Order {
+  id: string
+  userId: string
+  total: string
+  stripePaymentId: string | null
+  status: string
+  street: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+}
+
 // Check if Stripe is configured
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY
 if (!stripeSecretKey) {
@@ -41,7 +67,7 @@ export async function POST(req: Request) {
     }
 
     // Get the order with its items and shipping address
-    const orderResult = await db.query(`
+    const orderResult = await db.query<DBOrder>(`
       SELECT 
         o.id,
         o."userId",
@@ -65,7 +91,19 @@ export async function POST(req: Request) {
       )
     }
 
-    const order = orderResult.rows[0]
+    const orderData = orderResult.rows[0]
+    const order: Order = {
+      id: orderData.id as string,
+      userId: orderData.userId as string,
+      total: orderData.total as string,
+      stripePaymentId: orderData.stripePaymentId as string | null,
+      status: orderData.status as string,
+      street: orderData.street as string,
+      city: orderData.city as string,
+      state: orderData.state as string,
+      postalCode: orderData.postalCode as string,
+      country: orderData.country as string,
+    }
 
     // If order is already paid, return error
     if (order.stripePaymentId) {
