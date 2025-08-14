@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 const ITEMS_PER_PAGE = 12
 
@@ -13,8 +14,8 @@ export async function GET(request: NextRequest) {
     const maxPrice = parseFloat(searchParams.get('maxPrice') || '999999')
     const sort = searchParams.get('sort')
 
-    // Build Prisma query
-    const where: any = {
+    // Build Prisma query with proper types
+    const where: Prisma.ProductWhereInput = {
       price: {
         gte: minPrice,
         lte: maxPrice,
@@ -32,8 +33,8 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Build orderBy
-    let orderBy: any = { createdAt: 'desc' } // Default sort
+    // Build orderBy with proper types
+    let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' } // Default sort
     switch (sort) {
       case 'price-asc':
         orderBy = { price: 'asc' }
