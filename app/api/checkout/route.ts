@@ -98,18 +98,6 @@ export async function POST(req: Request) {
     })
 
     // Create Stripe payment intent
-    const lineItems = items.map((item: CartItem) => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.name,
-          images: [item.image],
-        },
-        unit_amount: Math.round(item.price * 100),
-      },
-      quantity: item.quantity,
-    }))
-
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(
         (order.total + order.total * 0.1 + 10) * 100 // Total + 10% tax + $10 shipping
