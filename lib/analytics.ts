@@ -1,7 +1,27 @@
 import { db } from '@/lib/db-pool'
 import { startOfDay, subDays, format } from 'date-fns'
 
-export async function getRevenueData(days: number = 30) {
+interface RevenueData {
+  date: string
+  revenue: number
+}
+
+interface OrderStat {
+  name: string
+  value: number
+}
+
+interface RecentOrder {
+  id: string
+  total: number
+  status: string
+  createdAt: Date
+  user: {
+    name: string
+  }
+}
+
+export async function getRevenueData(days: number = 30): Promise<RevenueData[]> {
   const endDate = startOfDay(new Date())
   const startDate = subDays(endDate, days)
 
@@ -22,12 +42,12 @@ export async function getRevenueData(days: number = 30) {
   // Group orders by date and calculate daily revenue
   const dailyRevenue = orders.reduce((acc, order) => {
     const date = format(new Date(order.createdAt), 'MMM d')
-    acc[date] = (acc[date] || 0) + parseFloat(order.total)
+    acc[date] = (acc[date] || 0) + parseFloat(order.total as string)
     return acc
   }, {} as Record<string, number>)
 
   // Convert to array format for Recharts
-  const data = Object.entries(dailyRevenue).map(([date, revenue]) => ({
+  const data: RevenueData[] = Object.entries(dailyRevenue).map(([date, revenue]) => ({
     date,
     revenue,
   }))
@@ -35,7 +55,7 @@ export async function getRevenueData(days: number = 30) {
   return data
 }
 
-export async function getOrderStats() {
+export async function getOrderStats(): Promise<OrderStat[]> {
   const endDate = new Date()
   const startDate = subDays(endDate, 30)
 
@@ -50,13 +70,13 @@ export async function getOrderStats() {
     GROUP BY status
   `, [startDate, endDate])
 
-  return result.rows.map((stat) => ({
-    name: stat.status,
-    value: parseInt(stat.count),
+  return result.rows.map((stat): OrderStat => ({
+    name: stat.status as string,
+    value: parseInt(stat.count as string),
   }))
 }
 
-export async function getRecentOrders(limit: number = 5) {
+export async function getRecentOrders(limit: number = 5): Promise<RecentOrder[]> {
   const result = await db.query(`
     SELECT 
       o.id,
@@ -70,13 +90,13 @@ export async function getRecentOrders(limit: number = 5) {
     LIMIT $1
   `, [limit])
 
-  return result.rows.map(order => ({
-    id: order.id,
-    total: parseFloat(order.total),
-    status: order.status,
-    createdAt: new Date(order.createdAt),
+  return result.rows.map((order): RecentOrder => ({
+    id: order.id as string,
+    total: parseFloat(order.total as string),
+    status: order.status as string,
+    createdAt: new Date(order.createdAt as string),
     user: {
-      name: order.user_name
+      name: order.user_name as string
     }
   }))
 }
