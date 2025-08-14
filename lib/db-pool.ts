@@ -10,9 +10,8 @@ class DatabasePool {
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: 20, // Maximum number of clients in the pool
       min: 5,  // Minimum number of clients in the pool
-      idle: 30000, // Close clients after 30 seconds of inactivity
-      acquire: 60000, // Maximum time to wait for a connection
-      create: 30000, // Maximum time to wait when creating a connection
+      idleTimeoutMillis: 30000, // Close clients after 30 seconds of inactivity
+      connectionTimeoutMillis: 60000, // Maximum time to wait for a connection
     });
 
     // Handle pool errors
