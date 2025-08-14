@@ -107,7 +107,7 @@ export default function SearchPage() {
               loading={loading}
               currentPage={currentPage}
               totalPages={totalPages}
-              onPageChange={(page) => {
+              onPageChange={() => {
                 // This will be handled by the ProductSidebar component
                 // or we can implement client-side navigation here
               }}
