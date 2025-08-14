@@ -1,4 +1,4 @@
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 
 class DatabasePool {
   private pool: Pool;
@@ -38,7 +38,7 @@ class DatabasePool {
   }
 
   // Execute a query with parameters
-  async query<T = unknown>(text: string, params?: (string | number | boolean | Date | null)[]): Promise<QueryResult<T>> {
+  async query<T extends QueryResultRow = QueryResultRow>(text: string, params?: (string | number | boolean | Date | null)[]): Promise<QueryResult<T>> {
     const start = Date.now();
     try {
       const result = await this.pool.query(text, params);
