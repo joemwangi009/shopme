@@ -1,6 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db-pool'
 
+interface CountResult {
+  total: unknown;
+}
+
+interface DBProductRow {
+  id: unknown;
+  name: unknown;
+  description: unknown;
+  price: unknown;
+  images: unknown;
+  categoryId: unknown;
+  stock: unknown;
+  createdAt: unknown;
+  updatedAt: unknown;
+  category_id: unknown;
+  category_name: unknown;
+  category_description: unknown;
+  category_image: unknown;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  categoryId: string;
+  stock: number;
+  createdAt: Date;
+  updatedAt: Date;
+  category: {
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+  };
+}
+
 const ITEMS_PER_PAGE = 12
 
 export async function GET(request: NextRequest) {
@@ -33,30 +71,26 @@ export async function GET(request: NextRequest) {
 
     // Search filter
     if (search) {
-      conditions.push(`(
-        p.name ILIKE $${++paramCount} OR 
-        p.description ILIKE $${++paramCount}
-      )`)
-      params.push(`%${search}%`)
-      params.push(`%${search}%`)
-      paramCount += 2
+      conditions.push(`(p.name ILIKE $${++paramCount} OR p.description ILIKE $${++paramCount})`)
+      params.push(`%${search}%`, `%${search}%`)
+      paramCount++ // Account for the extra parameter
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     // Build ORDER BY clause
-    let orderByClause = 'ORDER BY p."createdAt" DESC'
+    let orderByClause = 'ORDER BY p."createdAt" DESC' // Default sort
     switch (sort) {
-      case 'price_asc':
+      case 'price-asc':
         orderByClause = 'ORDER BY p.price ASC'
         break
-      case 'price_desc':
+      case 'price-desc':
         orderByClause = 'ORDER BY p.price DESC'
         break
-      case 'name_asc':
+      case 'name-asc':
         orderByClause = 'ORDER BY p.name ASC'
         break
-      case 'name_desc':
+      case 'name-desc':
         orderByClause = 'ORDER BY p.name DESC'
         break
     }
@@ -67,8 +101,8 @@ export async function GET(request: NextRequest) {
       FROM "Product" p
       ${whereClause}
     `
-    const countResult = await db.query(countQuery, params)
-    const total = parseInt(countResult.rows[0].total)
+    const countResult = await db.query<CountResult>(countQuery, params)
+    const total = parseInt(countResult.rows[0].total as string)
 
     // Get products with pagination
     const offset = (page - 1) * ITEMS_PER_PAGE
@@ -88,33 +122,29 @@ export async function GET(request: NextRequest) {
         c.description as "category_description",
         c.image as "category_image"
       FROM "Product" p
-      JOIN "Category" c ON p."categoryId" = c.id
+      LEFT JOIN "Category" c ON p."categoryId" = c.id
       ${whereClause}
       ${orderByClause}
-      LIMIT $${++paramCount} OFFSET $${++paramCount}
+      LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
     `
     
-    params.push(ITEMS_PER_PAGE)
-    params.push(offset)
-
-    const productsResult = await db.query(productsQuery, params)
-
-    // Format the results to match Prisma's structure
-    const products = productsResult.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      price: parseFloat(row.price),
-      images: row.images,
-      categoryId: row.categoryId,
-      stock: row.stock,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
+    const productsResult = await db.query<DBProductRow>(productsQuery, [...params, ITEMS_PER_PAGE, offset])
+    
+    const products: Product[] = productsResult.rows.map((row): Product => ({
+      id: row.id as string,
+      name: row.name as string,
+      description: row.description as string,
+      price: parseFloat(row.price as string),
+      images: row.images as string[],
+      categoryId: row.categoryId as string,
+      stock: Number(row.stock),
+      createdAt: new Date(row.createdAt as string),
+      updatedAt: new Date(row.updatedAt as string),
       category: {
-        id: row.category_id,
-        name: row.category_name,
-        description: row.category_description,
-        image: row.category_image
+        id: row.category_id as string,
+        name: row.category_name as string,
+        description: row.category_description as string,
+        image: row.category_image as string,
       }
     }))
 
