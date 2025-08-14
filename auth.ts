@@ -4,6 +4,24 @@ import bcrypt from 'bcryptjs'
 import Credentials from 'next-auth/providers/credentials'
 import { db } from './lib/db-pool'
 
+interface DBUser {
+  id: unknown;
+  email: unknown;
+  name: unknown;
+  image: unknown;
+  password: unknown;
+  role: unknown;
+}
+
+interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  image: string | null;
+  password: string;
+  role: string;
+}
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -36,12 +54,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials.email as string
         const password = credentials.password as string
 
-        const result = await db.query(
+        const result = await db.query<DBUser>(
           'SELECT id, email, name, image, password, role FROM "User" WHERE email = $1',
           [email]
         )
 
-        const user = result.rows[0]
+        const userData = result.rows[0]
+
+        if (!userData) {
+          return null
+        }
+
+        const user: AuthUser = {
+          id: userData.id as string,
+          email: userData.email as string,
+          name: userData.name as string,
+          image: userData.image as string | null,
+          password: userData.password as string,
+          role: userData.role as string,
+        }
 
         if (!user || !user.password) {
           return null
