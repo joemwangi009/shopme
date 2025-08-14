@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/auth.config'
+import { auth } from '@/auth'
 import { db } from '@/lib/db-pool'
 
 interface CartItem {
@@ -34,13 +33,13 @@ interface DBProduct {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
     const orderData: OrderData = await request.json()
-    const { items, shippingAddress, paymentMethod } = orderData
+    const { items, shippingAddress } = orderData
 
     if (!items?.length) {
       return new NextResponse('No items in order', { status: 400 })
