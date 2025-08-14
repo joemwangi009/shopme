@@ -47,7 +47,7 @@ export default function ShippingPage() {
         <section>
           <h2 className='text-2xl font-semibold mb-4'>Order Tracking</h2>
           <p className='mb-4'>
-            Once your order ships, you'll receive a tracking number via email. You can also track your 
+            Once your order ships, you&apos;ll receive a tracking number via email. You can also track your 
             order by logging into your account and viewing your order history.
           </p>
         </section>

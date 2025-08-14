@@ -33,7 +33,7 @@ export default function AboutPage() {
         
         <h2 className='text-2xl font-semibold mb-4'>Contact Us</h2>
         <p className='mb-4'>
-          Have questions or need assistance? We're here to help!
+          Have questions or need assistance? We&apos;re here to help!
         </p>
         <div className='bg-gray-50 p-6 rounded-lg'>
           <p><strong>Email:</strong> support@shopme.com</p>

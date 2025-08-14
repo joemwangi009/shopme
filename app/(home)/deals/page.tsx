@@ -11,7 +11,7 @@ export default function DealsPage() {
       <div className='text-center py-16'>
         <h2 className='text-xl font-semibold mb-4'>🎉 Coming Soon!</h2>
         <p className='text-gray-600 mb-6'>
-          We're working on bringing you the best deals and offers. Check back soon for amazing discounts!
+          We&apos;re working on bringing you the best deals and offers. Check back soon for amazing discounts!
         </p>
         <p className='text-sm text-gray-500'>
           In the meantime, browse our <a href='/search' className='text-blue-600 hover:underline'>products</a> or 

@@ -5,14 +5,14 @@ export default function CareersPage() {
       
       <div className='prose prose-gray max-w-none'>
         <p className='text-lg text-gray-600 mb-8'>
-          Join our team and help us build the future of e-commerce. We're always looking for talented, 
+          Join our team and help us build the future of e-commerce. We&apos;re always looking for talented, 
           passionate people to grow with us.
         </p>
 
         <div className='text-center py-16 bg-gray-50 rounded-lg'>
           <h2 className='text-xl font-semibold mb-4'>🚀 No Open Positions Currently</h2>
           <p className='text-gray-600 mb-6'>
-            We don't have any open positions at the moment, but we're always growing! 
+            We don&apos;t have any open positions at the moment, but we&apos;re always growing! 
             Check back soon or send us your resume.
           </p>
           <div className='space-y-2'>

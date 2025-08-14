@@ -7,7 +7,7 @@ export default function ReturnsPage() {
         <section>
           <h2 className='text-2xl font-semibold mb-4'>Our Return Policy</h2>
           <p className='mb-4'>
-            We want you to be completely satisfied with your purchase. If you're not happy with your order, 
+            We want you to be completely satisfied with your purchase. If you&apos;re not happy with your order, 
             you can return most items within 30 days of delivery for a full refund.
           </p>
         </section>
@@ -38,7 +38,7 @@ export default function ReturnsPage() {
         <section>
           <h2 className='text-2xl font-semibold mb-4'>Exchanges</h2>
           <p className='mb-4'>
-            We currently don't offer direct exchanges. To exchange an item, please return the original 
+            We currently don&apos;t offer direct exchanges. To exchange an item, please return the original 
             item for a refund and place a new order for the item you want.
           </p>
         </section>
@@ -58,7 +58,7 @@ export default function ReturnsPage() {
           <h2 className='text-2xl font-semibold mb-4'>Refund Processing</h2>
           <p className='mb-4'>
             Refunds will be issued to the original payment method within 5-7 business days after we 
-            receive and process your return. You'll receive an email confirmation when your refund 
+            receive and process your return. You&apos;ll receive an email confirmation when your refund 
             has been processed.
           </p>
         </section>
