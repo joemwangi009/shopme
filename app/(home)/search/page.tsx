@@ -4,22 +4,24 @@ import { ProductSidebar } from '@/components/products/product-sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface SearchPageProps {
-  searchParams: {
+  searchParams: Promise<{
     search?: string
     category?: string
     minPrice?: string
     maxPrice?: string
     sort?: string
     page?: string
-  }
+  }>
 }
 
-export default function SearchPage({ searchParams }: SearchPageProps) {
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const params = await searchParams
+  
   return (
     <div className='container mx-auto px-4 py-8'>
       <div className='mb-8'>
         <h1 className='text-3xl font-bold mb-2'>
-          {searchParams.search ? `Search results for "${searchParams.search}"` : 'All Products'}
+          {params.search ? `Search results for "${params.search}"` : 'All Products'}
         </h1>
         <p className='text-gray-600'>
           Discover our amazing collection of products
@@ -36,12 +38,12 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
         <div className='flex-1'>
           <Suspense fallback={<ProductGridSkeleton />}>
             <ProductGrid
-              search={searchParams.search}
-              category={searchParams.category}
-              minPrice={searchParams.minPrice}
-              maxPrice={searchParams.maxPrice}
-              sort={searchParams.sort}
-              page={searchParams.page}
+              search={params.search}
+              category={params.category}
+              minPrice={params.minPrice}
+              maxPrice={params.maxPrice}
+              sort={params.sort}
+              page={params.page}
             />
           </Suspense>
         </div>
