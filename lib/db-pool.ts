@@ -308,11 +308,23 @@ export class DatabaseHelpers {
     role: string;
     createdAt: Date;
   }>> {
-    const result = await db.query(
+    const result = await db.query<{
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      createdAt: string;
+    }>(
       'SELECT id, name, email, role, "createdAt" FROM "User" ORDER BY "createdAt" DESC LIMIT $1',
       [limit]
     );
-    return result.rows;
+    return result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      createdAt: new Date(row.createdAt),
+    }));
   }
 
   static async getProducts(categoryId?: string, limit: number = 20): Promise<Array<{
@@ -342,8 +354,31 @@ export class DatabaseHelpers {
     query += ' ORDER BY p."createdAt" DESC LIMIT $' + (params.length + 1);
     params.push(limit);
 
-    const result = await db.query(query, params);
-    return result.rows;
+    const result = await db.query<{
+      id: string;
+      name: string;
+      description: string;
+      price: string;
+      images: string[];
+      categoryId: string;
+      stock: string;
+      createdAt: string;
+      updatedAt: string;
+      categoryName: string;
+    }>(query, params);
+    
+    return result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      price: parseFloat(row.price),
+      images: row.images,
+      categoryId: row.categoryId,
+      stock: parseInt(row.stock),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+      categoryName: row.categoryName,
+    }));
   }
 
   static async getOrderSummary(): Promise<{
@@ -352,7 +387,12 @@ export class DatabaseHelpers {
     avgOrderValue: string;
     uniqueCustomers: string;
   }> {
-    const result = await db.query(`
+    const result = await db.query<{
+      totalOrders: string;
+      totalRevenue: string;
+      avgOrderValue: string;
+      uniqueCustomers: string;
+    }>(`
       SELECT 
         COUNT(*) as "totalOrders",
         SUM(total) as "totalRevenue",
