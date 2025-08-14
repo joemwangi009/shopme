@@ -1,6 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db-pool'
 
+interface ReviewData {
+  id: string;
+  rating: number;
+  comment: string;
+  userId: string;
+  createdAt: string;
+}
+
+interface DBProductRow {
+  id: unknown;
+  name: unknown;
+  description: unknown;
+  price: unknown;
+  images: unknown;
+  categoryId: unknown;
+  stock: unknown;
+  createdAt: unknown;
+  updatedAt: unknown;
+  reviews: unknown;
+}
+
+interface RelatedProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  categoryId: string;
+  stock: number;
+  createdAt: Date;
+  updatedAt: Date;
+  reviews: {
+    id: string;
+    rating: number;
+    comment: string;
+    userId: string;
+    createdAt: Date;
+  }[];
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -14,7 +54,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const result = await db.query(`
+    const result = await db.query<DBProductRow>(`
       SELECT 
         p.id,
         p.name,
@@ -49,29 +89,23 @@ export async function GET(request: NextRequest) {
       LIMIT 6
     `, [categoryId, currentProductId])
 
-    const relatedProducts = result.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      price: parseFloat(row.price),
-      images: row.images,
-      categoryId: row.categoryId,
-      stock: row.stock,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-      reviews: Array.isArray(row.reviews) ? row.reviews.map((review: {
-        id: string;
-        rating: number;
-        comment: string;
-        userId: string;
-        createdAt: string;
-      }) => ({
+    const relatedProducts: RelatedProduct[] = result.rows.map((row): RelatedProduct => ({
+      id: row.id as string,
+      name: row.name as string,
+      description: row.description as string,
+      price: parseFloat(row.price as string),
+      images: row.images as string[],
+      categoryId: row.categoryId as string,
+      stock: Number(row.stock),
+      createdAt: new Date(row.createdAt as string),
+      updatedAt: new Date(row.updatedAt as string),
+      reviews: Array.isArray(row.reviews) ? (row.reviews as ReviewData[]).map((review: ReviewData) => ({
         id: review.id,
         rating: review.rating,
         comment: review.comment,
         userId: review.userId,
-        createdAt: new Date(review.createdAt)
-      })) : []
+        createdAt: new Date(review.createdAt),
+      })) : [],
     }))
 
     return NextResponse.json(relatedProducts)
