@@ -1,63 +1,65 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/auth.config'
 import { db } from '@/lib/db-pool'
 
 interface CartItem {
-  id: string
   productId: string
   quantity: number
+}
+
+interface OrderData {
+  items: CartItem[]
+  shippingAddress: {
+    street: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
+  }
+  paymentMethod: string
+}
+
+interface Product {
+  id: string
+  stock: number
   price: number
 }
 
-interface ShippingInfo {
-  address: string
-  city: string
-  state: string
-  zipCode: string
-  country: string
+interface DBProduct {
+  id: unknown
+  stock: unknown
+  price: unknown
 }
 
-interface OrderBody {
-  items: CartItem[]
-  shippingInfo: ShippingInfo
-  total: number
-}
-
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-
+    const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return new NextResponse('Unauthorized: User ID is required', {
-        status: 401,
-      })
+      return new NextResponse('Unauthorized', { status: 401 })
     }
 
-    const body = await req.json()
-    const { items, shippingInfo, total } = body as OrderBody
+    const orderData: OrderData = await request.json()
+    const { items, shippingAddress, paymentMethod } = orderData
 
     if (!items?.length) {
-      return new NextResponse('Bad Request: Cart items are required', {
-        status: 400,
-      })
-    }
-
-    if (!shippingInfo) {
-      return new NextResponse('Bad Request: Shipping information is required', {
-        status: 400,
-      })
+      return new NextResponse('No items in order', { status: 400 })
     }
 
     // Verify all products exist and are in stock
     const productIds = items.map((item) => item.productId)
     const placeholders = productIds.map((_, index) => `$${index + 1}`).join(', ')
     
-    const productsResult = await db.query(
-      `SELECT id, stock FROM "Product" WHERE id IN (${placeholders})`,
+    const productsResult = await db.query<DBProduct>(
+      `SELECT id, stock, price FROM "Product" WHERE id IN (${placeholders})`,
       productIds
     )
 
-    const products = productsResult.rows
+    const products: Product[] = productsResult.rows.map((row) => ({
+      id: row.id as string,
+      stock: Number(row.stock),
+      price: Number(row.price)
+    }))
 
     // Check if all products exist
     if (products.length !== items.length) {
@@ -88,6 +90,12 @@ export async function POST(req: Request) {
       )
     }
 
+    // Calculate total
+    const total = items.reduce((sum, item) => {
+      const product = products.find((p) => p.id === item.productId)
+      return sum + (product?.price || 0) * item.quantity
+    }, 0)
+
     // Start a transaction to ensure all operations succeed or fail together
     const order = await db.transaction(async (client) => {
       // Create shipping address first
@@ -98,11 +106,11 @@ export async function POST(req: Request) {
         [
           addressId,
           session.user.id,
-          shippingInfo.address,
-          shippingInfo.city,
-          shippingInfo.state,
-          shippingInfo.zipCode,
-          shippingInfo.country,
+          shippingAddress.street,
+          shippingAddress.city,
+          shippingAddress.state,
+          shippingAddress.postalCode,
+          shippingAddress.country,
           false
         ]
       )
@@ -117,11 +125,12 @@ export async function POST(req: Request) {
 
       // Create order items
       for (const item of items) {
+        const product = products.find((p) => p.id === item.productId)
         const orderItemId = 'oi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         await client.query(
           `INSERT INTO "OrderItem" (id, "orderId", "productId", quantity, price)
            VALUES ($1, $2, $3, $4, $5)`,
-          [orderItemId, orderId, item.productId, item.quantity, item.price]
+          [orderItemId, orderId, item.productId, item.quantity, product?.price || 0]
         )
       }
 
