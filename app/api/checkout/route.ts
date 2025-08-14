@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db-pool'
 import Stripe from 'stripe'
 import { auth } from '@/auth'
 
@@ -42,6 +42,36 @@ export async function POST(req: Request) {
       )
     }
 
+    // Calculate total
+    const total = items.reduce(
+      (total: number, item: any) => total + item.price * item.quantity,
+      0
+    )
+
+    // Create order using transaction
+    const order = await db.transaction(async (client) => {
+      // Create order
+      const orderId = 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+      
+      await client.query(
+        `INSERT INTO "Order" (id, "userId", "addressId", total, status)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [orderId, session.user.id, shippingAddress.id, total, 'PENDING']
+      )
+
+      // Create order items
+      for (const item of items) {
+        const orderItemId = 'oi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        await client.query(
+          `INSERT INTO "OrderItem" (id, "orderId", "productId", quantity, price)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [orderItemId, orderId, item.id, item.quantity, item.price]
+        )
+      }
+
+      return { id: orderId, total }
+    })
+
     // Create Stripe payment intent
     const lineItems = items.map((item: any) => ({
       price_data: {
@@ -54,25 +84,6 @@ export async function POST(req: Request) {
       },
       quantity: item.quantity,
     }))
-
-    const order = await prisma.order.create({
-      data: {
-        userId: session.user.id,
-        status: 'PENDING',
-        total: items.reduce(
-          (total: number, item: any) => total + item.price * item.quantity,
-          0
-        ),
-        addressId: shippingAddress.id,
-        items: {
-          create: items.map((item: any) => ({
-            productId: item.id,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
-      },
-    })
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(

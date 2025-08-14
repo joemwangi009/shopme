@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
+import { db } from '@/lib/db-pool'
 
 const ITEMS_PER_PAGE = 12
 
@@ -14,67 +13,110 @@ export async function GET(request: NextRequest) {
     const maxPrice = parseFloat(searchParams.get('maxPrice') || '999999')
     const sort = searchParams.get('sort')
 
-    // Build where clause for filtering
-    const where: Prisma.ProductWhereInput = {
-      AND: [
-        { price: { gte: minPrice } },
-        { price: { lte: maxPrice } },
-        ...(category ? [{ categoryId: category }] : []),
-        ...(search
-          ? [
-              {
-                OR: [
-                  {
-                    name: {
-                      contains: search,
-                      mode: 'insensitive' as Prisma.QueryMode,
-                    },
-                  },
-                  {
-                    description: {
-                      contains: search,
-                      mode: 'insensitive' as Prisma.QueryMode,
-                    },
-                  },
-                ],
-              },
-            ]
-          : []),
-      ],
+    // Build WHERE conditions
+    const conditions: string[] = []
+    const params: any[] = []
+    let paramCount = 0
+
+    // Price filters
+    conditions.push(`p.price >= $${++paramCount}`)
+    params.push(minPrice)
+    
+    conditions.push(`p.price <= $${++paramCount}`)
+    params.push(maxPrice)
+
+    // Category filter
+    if (category) {
+      conditions.push(`p."categoryId" = $${++paramCount}`)
+      params.push(category)
     }
 
-    // Build orderBy clause for sorting
-    let orderBy: Prisma.ProductOrderByWithRelationInput = {}
+    // Search filter
+    if (search) {
+      conditions.push(`(
+        p.name ILIKE $${++paramCount} OR 
+        p.description ILIKE $${++paramCount}
+      )`)
+      params.push(`%${search}%`)
+      params.push(`%${search}%`)
+      paramCount += 2
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    // Build ORDER BY clause
+    let orderByClause = 'ORDER BY p."createdAt" DESC'
     switch (sort) {
       case 'price_asc':
-        orderBy = { price: 'asc' }
+        orderByClause = 'ORDER BY p.price ASC'
         break
       case 'price_desc':
-        orderBy = { price: 'desc' }
+        orderByClause = 'ORDER BY p.price DESC'
         break
       case 'name_asc':
-        orderBy = { name: 'asc' }
+        orderByClause = 'ORDER BY p.name ASC'
         break
       case 'name_desc':
-        orderBy = { name: 'desc' }
+        orderByClause = 'ORDER BY p.name DESC'
         break
-      default:
-        orderBy = { createdAt: 'desc' }
     }
 
     // Get total count for pagination
-    const total = await prisma.product.count({ where })
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM "Product" p
+      ${whereClause}
+    `
+    const countResult = await db.query(countQuery, params)
+    const total = parseInt(countResult.rows[0].total)
 
     // Get products with pagination
-    const products = await prisma.product.findMany({
-      where,
-      orderBy,
-      skip: (page - 1) * ITEMS_PER_PAGE,
-      take: ITEMS_PER_PAGE,
-      include: {
-        category: true,
-      },
-    })
+    const offset = (page - 1) * ITEMS_PER_PAGE
+    const productsQuery = `
+      SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.images,
+        p."categoryId",
+        p.stock,
+        p."createdAt",
+        p."updatedAt",
+        c.id as "category_id",
+        c.name as "category_name",
+        c.description as "category_description",
+        c.image as "category_image"
+      FROM "Product" p
+      JOIN "Category" c ON p."categoryId" = c.id
+      ${whereClause}
+      ${orderByClause}
+      LIMIT $${++paramCount} OFFSET $${++paramCount}
+    `
+    
+    params.push(ITEMS_PER_PAGE)
+    params.push(offset)
+
+    const productsResult = await db.query(productsQuery, params)
+
+    // Format the results to match Prisma's structure
+    const products = productsResult.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      price: parseFloat(row.price),
+      images: row.images,
+      categoryId: row.categoryId,
+      stock: row.stock,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+      category: {
+        id: row.category_id,
+        name: row.category_name,
+        description: row.category_description,
+        image: row.category_image
+      }
+    }))
 
     return NextResponse.json({
       products,

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db-pool'
 import Stripe from 'stripe'
 
 // Check if Stripe is configured
@@ -40,28 +40,32 @@ export async function POST(req: Request) {
       )
     }
 
-    // Get the order
-    const order = await prisma.order.findUnique({
-      where: {
-        id: orderId,
-        userId: session.user.id,
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-        shippingAddress: true,
-      },
-    })
+    // Get the order with its items and shipping address
+    const orderResult = await db.query(`
+      SELECT 
+        o.id,
+        o."userId",
+        o.total,
+        o."stripePaymentId",
+        o.status,
+        a.street,
+        a.city,
+        a.state,
+        a."postalCode",
+        a.country
+      FROM "Order" o
+      JOIN "Address" a ON o."addressId" = a.id
+      WHERE o.id = $1 AND o."userId" = $2
+    `, [orderId, session.user.id])
 
-    if (!order) {
+    if (orderResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Order not found' },
         { status: 404 }
       )
     }
+
+    const order = orderResult.rows[0]
 
     // If order is already paid, return error
     if (order.stripePaymentId) {
@@ -71,8 +75,22 @@ export async function POST(req: Request) {
       )
     }
 
+    // Get order items with product details
+    const itemsResult = await db.query(`
+      SELECT 
+        oi.id,
+        oi.quantity,
+        oi.price,
+        p.id as product_id,
+        p.name as product_name,
+        p.images as product_images
+      FROM "OrderItem" oi
+      JOIN "Product" p ON oi."productId" = p.id
+      WHERE oi."orderId" = $1
+    `, [orderId])
+
     // Calculate final amount including tax and shipping
-    const subtotal = order.total
+    const subtotal = parseFloat(order.total)
     const shipping = 10 // Fixed shipping cost
     const tax = subtotal * 0.1 // 10% tax
     const total = Math.round((subtotal + shipping + tax) * 100) // Convert to cents
@@ -91,14 +109,11 @@ export async function POST(req: Request) {
     })
 
     // Update order with payment intent ID
-    await prisma.order.update({
-      where: {
-        id: order.id,
-      },
-      data: {
-        stripePaymentId: paymentIntent.id,
-      },
-    })
+    await db.query(`
+      UPDATE "Order" 
+      SET "stripePaymentId" = $1, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, [paymentIntent.id, order.id])
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,

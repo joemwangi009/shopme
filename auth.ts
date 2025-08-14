@@ -1,11 +1,8 @@
 import NextAuth, { DefaultSession } from 'next-auth'
-import { PrismaClient } from '@prisma/client'
 import authConfig from './auth.config'
 import bcrypt from 'bcryptjs'
 import Credentials from 'next-auth/providers/credentials'
-import { User } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { db } from './lib/db-pool'
 
 declare module 'next-auth' {
   interface Session {
@@ -39,9 +36,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials.email as string
         const password = credentials.password as string
 
-        const user = await prisma.user.findUnique({
-          where: { email },
-        })
+        const result = await db.query(
+          'SELECT id, email, name, image, password, role FROM "User" WHERE email = $1',
+          [email]
+        )
+
+        const user = result.rows[0]
 
         if (!user || !user.password) {
           return null
@@ -66,7 +66,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as User).role
+        token.role = (user as any).role
         token.id = user.id
       }
       return token
