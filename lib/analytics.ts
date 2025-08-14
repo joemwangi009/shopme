@@ -22,11 +22,29 @@ interface RecentOrder {
   }
 }
 
+interface DBOrderRevenue {
+  total: unknown
+  createdAt: unknown
+}
+
+interface DBOrderStat {
+  status: unknown
+  count: unknown
+}
+
+interface DBRecentOrder {
+  id: unknown
+  total: unknown
+  status: unknown
+  createdAt: unknown
+  user_name: unknown
+}
+
 export async function getRevenueData(days: number = 30): Promise<RevenueData[]> {
   const endDate = startOfDay(new Date())
   const startDate = subDays(endDate, days)
 
-  const result = await db.query(`
+  const result = await db.query<DBOrderRevenue>(`
     SELECT 
       total,
       "createdAt"
@@ -41,9 +59,9 @@ export async function getRevenueData(days: number = 30): Promise<RevenueData[]> 
   const orders = result.rows
 
   // Group orders by date and calculate daily revenue
-  const dailyRevenue = orders.reduce((acc, order) => {
-    const date = format(new Date(order.createdAt), 'MMM d')
-    acc[date] = (acc[date] || 0) + parseFloat(order.total as string)
+  const dailyRevenue = orders.reduce((acc, orderData) => {
+    const date = format(new Date(orderData.createdAt as string), 'MMM d')
+    acc[date] = (acc[date] || 0) + parseFloat(orderData.total as string)
     return acc
   }, {} as Record<string, number>)
 
@@ -60,7 +78,7 @@ export async function getOrderStats(): Promise<OrderStat[]> {
   const endDate = new Date()
   const startDate = subDays(endDate, 30)
 
-  const result = await db.query(`
+  const result = await db.query<DBOrderStat>(`
     SELECT 
       status,
       COUNT(*) as count
@@ -78,7 +96,7 @@ export async function getOrderStats(): Promise<OrderStat[]> {
 }
 
 export async function getRecentOrders(limit: number = 5): Promise<RecentOrder[]> {
-  const result = await db.query(`
+  const result = await db.query<DBRecentOrder>(`
     SELECT 
       o.id,
       o.total,
