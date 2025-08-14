@@ -1,18 +1,10 @@
-import { Suspense } from 'react'
+'use client'
+
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ProductGrid } from '@/components/products/product-grid'
 import { ProductSidebar } from '@/components/products/product-sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
-
-interface SearchPageProps {
-  searchParams: Promise<{
-    search?: string
-    category?: string
-    minPrice?: string
-    maxPrice?: string
-    sort?: string
-    page?: string
-  }>
-}
 
 interface Product {
   id: string
@@ -32,54 +24,69 @@ interface Product {
   }
 }
 
-async function getProducts(searchParams: {
-  search?: string
-  category?: string
-  minPrice?: string
-  maxPrice?: string
-  sort?: string
-  page?: string
-}): Promise<{ products: Product[]; totalPages: number; currentPage: number }> {
-  try {
-    const url = new URL(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/products`)
-    
-    // Add search parameters to URL
-    Object.entries(searchParams).forEach(([key, value]) => {
-      if (value) {
-        url.searchParams.append(key, value)
+export default function SearchPage() {
+  const searchParams = useSearchParams()
+  const [products, setProducts] = useState<Product[]>([])
+  const [totalPages, setTotalPages] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true)
+      try {
+        const url = new URL(`${window.location.origin}/api/products`)
+        
+        // Add search parameters to URL
+        const params = {
+          search: searchParams.get('search') || undefined,
+          category: searchParams.get('category') || undefined,
+          minPrice: searchParams.get('minPrice') || undefined,
+          maxPrice: searchParams.get('maxPrice') || undefined,
+          sort: searchParams.get('sort') || undefined,
+          page: searchParams.get('page') || '1'
+        }
+
+        Object.entries(params).forEach(([key, value]) => {
+          if (value) {
+            url.searchParams.append(key, value)
+          }
+        })
+
+        const response = await fetch(url.toString())
+        
+        if (!response.ok) {
+          console.error('Failed to fetch products')
+          setProducts([])
+          setTotalPages(0)
+          setCurrentPage(1)
+          return
+        }
+        
+        const data = await response.json()
+        setProducts(data.products || [])
+        setTotalPages(data.totalPages || 0)
+        setCurrentPage(parseInt(params.page || '1'))
+      } catch (error) {
+        console.error('Error fetching products:', error)
+        setProducts([])
+        setTotalPages(0)
+        setCurrentPage(1)
+      } finally {
+        setLoading(false)
       }
-    })
-
-    const response = await fetch(url.toString(), {
-      cache: 'no-store'
-    })
-    
-    if (!response.ok) {
-      console.error('Failed to fetch products')
-      return { products: [], totalPages: 0, currentPage: 1 }
     }
-    
-    const data = await response.json()
-    return {
-      products: data.products || [],
-      totalPages: data.totalPages || 0,
-      currentPage: parseInt(searchParams.page || '1')
-    }
-  } catch (error) {
-    console.error('Error fetching products:', error)
-    return { products: [], totalPages: 0, currentPage: 1 }
-  }
-}
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const params = await searchParams
-  const { products, totalPages, currentPage } = await getProducts(params)
+    fetchProducts()
+  }, [searchParams])
+
+  const search = searchParams.get('search')
   
   return (
     <div className='container mx-auto px-4 py-8'>
       <div className='mb-8'>
         <h1 className='text-3xl font-bold mb-2'>
-          {params.search ? `Search results for "${params.search}"` : 'All Products'}
+          {search ? `Search results for "${search}"` : 'All Products'}
         </h1>
         <p className='text-gray-600'>
           Discover our amazing collection of products
@@ -97,10 +104,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <Suspense fallback={<ProductGridSkeleton />}>
             <ProductGrid
               products={products}
-              loading={false}
+              loading={loading}
               currentPage={currentPage}
               totalPages={totalPages}
-              onPageChange={() => {
+              onPageChange={(page) => {
                 // This will be handled by the ProductSidebar component
                 // or we can implement client-side navigation here
               }}
