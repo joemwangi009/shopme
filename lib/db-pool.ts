@@ -8,8 +8,8 @@ class DatabasePool {
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      max: 20, // Maximum number of clients in the pool
-      min: 5,  // Minimum number of clients in the pool
+      max: 10, // Reduced from 20 to prevent excessive connections
+      min: 2,  // Reduced from 5 to prevent excessive connections
       idleTimeoutMillis: 30000, // Close clients after 30 seconds of inactivity
       connectionTimeoutMillis: 60000, // Maximum time to wait for a connection
     });
@@ -19,14 +19,17 @@ class DatabasePool {
       console.error('Database pool error:', err);
     });
 
-    // Handle pool connection events
-    this.pool.on('connect', () => {
-      console.log('🔌 New client connected to database pool');
-    });
+    // Only log connections in development
+    if (process.env.NODE_ENV === 'development') {
+      // Handle pool connection events
+      this.pool.on('connect', () => {
+        console.log('🔌 New client connected to database pool');
+      });
 
-    this.pool.on('remove', () => {
-      console.log('🔌 Client removed from database pool');
-    });
+      this.pool.on('remove', () => {
+        console.log('🔌 Client removed from database pool');
+      });
+    }
   }
 
   // Singleton pattern to ensure only one pool instance

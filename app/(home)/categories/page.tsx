@@ -12,7 +12,7 @@ interface Category {
 async function getCategories(): Promise<Category[]> {
   try {
     const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/categories`, {
-      cache: 'no-store'
+      next: { revalidate: 3600 } // Cache for 1 hour
     })
     
     if (!response.ok) {
