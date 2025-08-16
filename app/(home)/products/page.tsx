@@ -4,7 +4,22 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ProductGrid } from '@/components/products/product-grid'
 import { ProductSidebar } from '@/components/products/product-sidebar'
-import { Product } from '@prisma/client'
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  price: number
+  images: string[]
+  categoryId: string
+  stock: number
+  category: {
+    id: string
+    name: string
+  }
+  createdAt: string
+  updatedAt: string
+}
 
 export default function ProductsPage() {
   const searchParams = useSearchParams()
@@ -36,7 +51,7 @@ export default function ProductsPage() {
         const data = await response.json()
 
         setProducts(data.products)
-        setTotalPages(Math.ceil(data.total / data.perPage))
+        setTotalPages(Math.ceil(data.total / data.pagination.pages))
       } catch (error) {
         console.error('Error fetching products:', error)
       } finally {
