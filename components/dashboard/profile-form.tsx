@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
-import { User } from '@prisma/client'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +17,19 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import { User } from 'lucide-react'
+
+interface User {
+  id: string
+  name: string
+  email: string
+  image: string | null
+  emailVerified: Date | null
+  password: string | null
+  role: 'USER' | 'ADMIN'
+  createdAt: Date
+  updatedAt: Date
+}
 
 const profileFormSchema = z.object({
   name: z

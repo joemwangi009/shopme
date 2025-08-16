@@ -3,10 +3,22 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Address } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { MapPin, Trash2, Star, StarOff } from 'lucide-react'
+
+interface Address {
+  id: string
+  userId: string
+  street: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  isDefault: boolean
+  createdAt: Date
+  updatedAt: Date
+}
 
 interface AddressListProps {
   addresses: Address[]

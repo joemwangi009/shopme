@@ -1,7 +1,22 @@
 'use client'
 
 import { ProductCard } from '@/components/ui/product-card'
-import { Product } from '@prisma/client'
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  price: number
+  images: string[]
+  categoryId: string
+  stock: number
+  category: {
+    id: string
+    name: string
+  }
+  createdAt: Date
+  updatedAt: Date
+}
 
 interface LatestProductsProps {
   products: Product[]

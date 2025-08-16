@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Product } from '@prisma/client'
 import { ProductCard } from '@/components/ui/product-card'
 import {
   Carousel,
@@ -10,6 +9,22 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel'
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  price: number
+  images: string[]
+  categoryId: string
+  stock: number
+  category: {
+    id: string
+    name: string
+  }
+  createdAt: string
+  updatedAt: string
+}
 
 interface ProductRelatedProps {
   categoryId: string
