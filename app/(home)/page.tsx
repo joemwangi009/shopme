@@ -9,6 +9,10 @@ interface Product {
   images: string[]
   categoryId: string
   stock: number
+  category: {
+    id: string
+    name: string
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -25,10 +29,12 @@ async function getLatestProducts(): Promise<Product[]> {
       stock: unknown
       created_at: unknown
       updated_at: unknown
+      category_name: unknown
     }>(`
-      SELECT id, name, description, price, images, "categoryId", stock, created_at, updated_at
-      FROM "Product" 
-      ORDER BY created_at DESC 
+      SELECT p.id, p.name, p.description, p.price, p.images, p."categoryId", p.stock, p.created_at, p.updated_at, c.name as category_name
+      FROM "Product" p
+      JOIN "Category" c ON p."categoryId" = c.id
+      ORDER BY p.created_at DESC 
       LIMIT 8
     `)
 
@@ -40,6 +46,10 @@ async function getLatestProducts(): Promise<Product[]> {
       images: row.images as string[],
       categoryId: row.categoryId as string,
       stock: parseInt(row.stock as string),
+      category: {
+        id: row.categoryId as string,
+        name: row.category_name as string,
+      },
       createdAt: new Date(row.created_at as string),
       updatedAt: new Date(row.updated_at as string),
     }))
