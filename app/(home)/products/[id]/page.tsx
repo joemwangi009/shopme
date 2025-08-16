@@ -20,14 +20,7 @@ interface Product {
     name: string
   }
   reviews: {
-    id: string
     rating: number
-    comment: string | null
-    createdAt: Date
-    user: {
-      name: string | null
-      image: string | null
-    }
   }[]
 }
 
