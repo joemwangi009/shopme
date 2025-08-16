@@ -58,60 +58,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials.email as string
         const password = credentials.password as string
 
-        const result = await db.query<DBUser>(
-          'SELECT id, email, name, image, password, role FROM "User" WHERE email = $1',
-          [email]
-        )
+        try {
+          const result = await db.query<DBUser>(
+            'SELECT id, email, name, image, password, role FROM "User" WHERE email = $1',
+            [email]
+          )
 
-        const userData = result.rows[0]
+          const userData = result.rows[0]
+          if (!userData) {
+            return null
+          }
 
-        if (!userData) {
+          const isPasswordValid = await bcrypt.compare(
+            password,
+            userData.password as string
+          )
+
+          if (!isPasswordValid) {
+            return null
+          }
+
+          const user: AuthUser = {
+            id: userData.id as string,
+            email: userData.email as string,
+            name: userData.name as string,
+            image: userData.image as string | null,
+            password: userData.password as string,
+            role: userData.role as 'USER' | 'ADMIN',
+          }
+
+          return user
+        } catch (error) {
+          console.error('Database error during authentication:', error)
           return null
-        }
-
-        const user: AuthUser = {
-          id: userData.id as string,
-          email: userData.email as string,
-          name: userData.name as string,
-          image: userData.image as string | null,
-          password: userData.password as string,
-          role: (userData.role as string) === 'ADMIN' ? 'ADMIN' : 'USER',
-        }
-
-        if (!user || !user.password) {
-          return null
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password)
-
-        if (!isPasswordValid) {
-          return null
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          role: user.role,
         }
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role
-        token.id = user.id
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.role = token.role as 'USER' | 'ADMIN'
-        session.user.id = token.id as string
-      }
-      return session
-    },
-  },
 })

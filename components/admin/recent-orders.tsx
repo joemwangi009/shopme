@@ -19,7 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { OrderStatus } from '@prisma/client'
 import { useRouter } from 'next/navigation'
 
 interface Order {
@@ -28,7 +27,7 @@ interface Order {
     name: string | null
   }
   total: number
-  status: OrderStatus
+  status: string
   createdAt: Date
 }
 
@@ -37,11 +36,11 @@ interface RecentOrdersProps {
 }
 
 const statusColors = {
-  [OrderStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
-  [OrderStatus.PROCESSING]: 'bg-blue-100 text-blue-800',
-  [OrderStatus.SHIPPED]: 'bg-purple-100 text-purple-800',
-  [OrderStatus.DELIVERED]: 'bg-green-100 text-green-800',
-  [OrderStatus.CANCELLED]: 'bg-red-100 text-red-800',
+  'PENDING': 'bg-yellow-100 text-yellow-800',
+  'PROCESSING': 'bg-blue-100 text-blue-800',
+  'SHIPPED': 'bg-purple-100 text-purple-800',
+  'DELIVERED': 'bg-green-100 text-green-800',
+  'CANCELLED': 'bg-red-100 text-red-800',
 }
 
 export function RecentOrders({ orders }: RecentOrdersProps) {
@@ -73,7 +72,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                 <TableCell>
                   <Badge
                     variant='secondary'
-                    className={statusColors[order.status]}
+                    className={statusColors[order.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}
                   >
                     {order.status}
                   </Badge>

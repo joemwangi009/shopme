@@ -1,73 +1,67 @@
-import { redirect } from 'next/navigation'
-import { auth } from '@/auth'
-import prisma from '@/lib/prisma'
 import { PaymentForm } from '@/components/checkout/payment-form'
-import { OrderSummary } from '@/components/checkout/order-summary'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { db } from '@/lib/db-pool'
+import { notFound } from 'next/navigation'
 
-type tParams = Promise<{ id: string }>
+interface Order {
+  id: string
+  total: number
+  status: string
+  createdAt: Date
+}
+
+async function getOrder(orderId: string): Promise<Order | null> {
+  try {
+    const result = await db.query<{
+      id: unknown
+      total: unknown
+      status: unknown
+      created_at: unknown
+    }>(`
+      SELECT id, total, status, created_at
+      FROM "Order"
+      WHERE id = $1
+    `, [orderId])
+
+    if (result.rows.length === 0) {
+      return null
+    }
+
+    const row = result.rows[0]
+    return {
+      id: row.id as string,
+      total: parseFloat(row.total as string),
+      status: row.status as string,
+      createdAt: new Date(row.created_at as string),
+    }
+  } catch (error) {
+    console.error('Error fetching order:', error)
+    return null
+  }
+}
 
 interface PageProps {
-  params: tParams
+  params: Promise<{ id: string }>
 }
 
 export default async function PaymentPage({ params }: PageProps) {
-  const session = await auth()
   const { id } = await params
-
-  if (!session?.user) {
-    redirect('/api/auth/signin?callbackUrl=/payment/' + id)
-  }
-
-  const order = await prisma.order.findUnique({
-    where: {
-      id: id,
-      userId: session.user.id,
-    },
-    include: {
-      items: {
-        include: {
-          product: true,
-        },
-      },
-      shippingAddress: true,
-    },
-  })
+  const order = await getOrder(id)
 
   if (!order) {
-    redirect('/')
-  }
-
-  // If order is already paid, redirect to confirmation
-  if (order.stripePaymentId) {
-    redirect(`/order-confirmation/${order.id}`)
+    notFound()
   }
 
   return (
-    <div className='container max-w-7xl mx-auto py-20 px-4 sm:px-6 lg:px-8'>
-      <h1 className='text-3xl font-bold mb-10'>Payment</h1>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PaymentForm orderId={id} />
-            </CardContent>
-          </Card>
+    <div className='container mx-auto px-4 py-8'>
+      <div className='max-w-2xl mx-auto space-y-6'>
+        <div className='text-center'>
+          <h1 className='text-3xl font-bold'>Complete Your Payment</h1>
+          <p className='text-muted-foreground'>
+            Order #{order.id.slice(0, 8)} - Total: ${order.total.toFixed(2)}
+          </p>
         </div>
 
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <OrderSummary />
-            </CardContent>
-          </Card>
-        </div>
+        <PaymentForm orderId={order.id} />
       </div>
     </div>
   )

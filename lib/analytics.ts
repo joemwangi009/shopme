@@ -1,6 +1,5 @@
 import { db } from '@/lib/db-pool'
 import { startOfDay, subDays, format } from 'date-fns'
-import { OrderStatus } from '@prisma/client'
 
 interface RevenueData {
   date: string
@@ -15,7 +14,7 @@ interface OrderStat {
 interface RecentOrder {
   id: string
   total: number
-  status: OrderStatus
+  status: string
   createdAt: Date
   user: {
     name: string
@@ -24,7 +23,7 @@ interface RecentOrder {
 
 interface DBOrderRevenue {
   total: unknown
-  createdAt: unknown
+  created_at: unknown
 }
 
 interface DBOrderStat {
@@ -36,7 +35,7 @@ interface DBRecentOrder {
   id: unknown
   total: unknown
   status: unknown
-  createdAt: unknown
+  created_at: unknown
   user_name: unknown
 }
 
@@ -48,20 +47,20 @@ export async function getRevenueData(days: number = 30): Promise<RevenueData[]> 
     const result = await db.query<DBOrderRevenue>(`
       SELECT 
         total,
-        "createdAt"
+        created_at
       FROM "Order" 
       WHERE 
         status = 'DELIVERED'
-        AND "createdAt" >= $1
-        AND "createdAt" <= $2
-      ORDER BY "createdAt" ASC
+        AND created_at >= $1
+        AND created_at <= $2
+      ORDER BY created_at ASC
     `, [startDate, endDate])
 
     const orders = result.rows
 
     // Group orders by date and calculate daily revenue
     const dailyRevenue = orders.reduce((acc, orderData) => {
-      const date = format(new Date(orderData.createdAt as string), 'MMM d')
+      const date = format(new Date(orderData.created_at as string), 'MMM d')
       acc[date] = (acc[date] || 0) + parseFloat(orderData.total as string)
       return acc
     }, {} as Record<string, number>)
@@ -90,8 +89,8 @@ export async function getOrderStats(): Promise<OrderStat[]> {
         COUNT(*) as count
       FROM "Order"
       WHERE 
-        "createdAt" >= $1
-        AND "createdAt" <= $2
+        created_at >= $1
+        AND created_at <= $2
       GROUP BY status
     `, [startDate, endDate])
 
@@ -112,19 +111,19 @@ export async function getRecentOrders(limit: number = 5): Promise<RecentOrder[]>
         o.id,
         o.total,
         o.status,
-        o."createdAt",
+        o.created_at,
         u.name as user_name
       FROM "Order" o
-      JOIN "User" u ON o."userId" = u.id
-      ORDER BY o."createdAt" DESC
+      JOIN "User" u ON o.user_id = u.id
+      ORDER BY o.created_at DESC
       LIMIT $1
     `, [limit])
 
     return result.rows.map((order): RecentOrder => ({
       id: order.id as string,
       total: parseFloat(order.total as string),
-      status: order.status as OrderStatus,
-      createdAt: new Date(order.createdAt as string),
+      status: order.status as string,
+      createdAt: new Date(order.created_at as string),
       user: {
         name: order.user_name as string
       }
@@ -153,7 +152,7 @@ export async function getAdminMetrics() {
         SELECT COALESCE(SUM(total), 0) as total
         FROM "Order" 
         WHERE status = 'DELIVERED' 
-        AND "createdAt" >= $1 AND "createdAt" < $2
+        AND created_at >= $1 AND created_at < $2
       `, [lastMonth, now])
     ])
 
@@ -163,7 +162,7 @@ export async function getAdminMetrics() {
       db.query<{ count: unknown }>(`
         SELECT COUNT(*) as count 
         FROM "Order" 
-        WHERE "createdAt" >= $1 AND "createdAt" < $2
+        WHERE created_at >= $1 AND created_at < $2
       `, [lastHour, now])
     ])
 
@@ -178,7 +177,7 @@ export async function getAdminMetrics() {
         SELECT COUNT(*) as count 
         FROM "User" 
         WHERE role = 'USER' 
-        AND "createdAt" >= $1 AND "createdAt" < $2
+        AND created_at >= $1 AND created_at < $2
       `, [lastMonth, now])
     ])
 
@@ -193,7 +192,7 @@ export async function getAdminMetrics() {
         SELECT COALESCE(AVG(total), 0) as avg
         FROM "Order" 
         WHERE status = 'DELIVERED' 
-        AND "createdAt" >= $1 AND "createdAt" < $2
+        AND created_at >= $1 AND created_at < $2
       `, [lastWeek, now])
     ])
 

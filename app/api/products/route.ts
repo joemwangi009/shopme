@@ -1,82 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
+import { NextResponse } from 'next/server'
+import { db } from '@/lib/db-pool'
 
-const ITEMS_PER_PAGE = 12
-
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
     const category = searchParams.get('category')
     const search = searchParams.get('search')
-    const minPrice = parseFloat(searchParams.get('minPrice') || '0')
-    const maxPrice = parseFloat(searchParams.get('maxPrice') || '999999')
-    const sort = searchParams.get('sort')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '12')
+    const offset = (page - 1) * limit
 
-    // Build Prisma query with proper types
-    const where: Prisma.ProductWhereInput = {
-      price: {
-        gte: minPrice,
-        lte: maxPrice,
-      },
-    }
+    let query = `
+      SELECT p.*, c.name as category_name
+      FROM "Product" p
+      JOIN "Category" c ON p."categoryId" = c.id
+      WHERE 1=1
+    `
+    const params: (string | number)[] = []
+    let paramIndex = 1
 
-    if (category && category !== 'all') {
-      where.categoryId = category
+    if (category) {
+      query += ` AND p."categoryId" = $${paramIndex}`
+      params.push(category)
+      paramIndex++
     }
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ]
-    }
-
-    // Build orderBy with proper types
-    let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' } // Default sort
-    switch (sort) {
-      case 'price-asc':
-        orderBy = { price: 'asc' }
-        break
-      case 'price-desc':
-        orderBy = { price: 'desc' }
-        break
-      case 'name-asc':
-        orderBy = { name: 'asc' }
-        break
-      case 'name-desc':
-        orderBy = { name: 'desc' }
-        break
+      query += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`
+      params.push(`%${search}%`)
+      paramIndex++
     }
 
     // Get total count for pagination
-    const totalCount = await prisma.product.count({ where })
-    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
+    const countQuery = query.replace('SELECT p.*, c.name as category_name', 'SELECT COUNT(*) as total')
+    const countResult = await db.query(countQuery, params)
+    const total = parseInt(countResult.rows[0]?.total as string || '0')
 
     // Get products with pagination
-    const products = await prisma.product.findMany({
-      where,
-      orderBy,
-      skip: (page - 1) * ITEMS_PER_PAGE,
-      take: ITEMS_PER_PAGE,
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            image: true,
-          },
-        },
+    query += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
+    params.push(limit, offset)
+
+    const result = await db.query(query, params)
+
+    const products = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      price: parseFloat(row.price as string),
+      images: row.images,
+      categoryId: row.categoryId,
+      stock: parseInt(row.stock as string),
+      category: {
+        id: row.categoryId,
+        name: row.category_name,
       },
-    })
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }))
 
     return NextResponse.json({
       products,
-      totalPages,
-      currentPage: page,
-      totalCount,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
     })
   } catch (error) {
     console.error('Error fetching products:', error)

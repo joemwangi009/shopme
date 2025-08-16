@@ -1,122 +1,71 @@
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
-import prisma from '@/lib/prisma'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import Image from 'next/image'
+import { db } from '@/lib/db-pool'
+
+interface Order {
+  id: string
+  total: number
+  status: string
+  createdAt: Date
+}
+
+async function getOrders(): Promise<Order[]> {
+  try {
+    const result = await db.query<{
+      id: unknown
+      total: unknown
+      status: unknown
+      created_at: unknown
+    }>(`
+      SELECT id, total, status, created_at
+      FROM "Order"
+      ORDER BY created_at DESC
+    `)
+
+    return result.rows.map(row => ({
+      id: row.id as string,
+      total: parseFloat(row.total as string),
+      status: row.status as string,
+      createdAt: new Date(row.created_at as string),
+    }))
+  } catch (error) {
+    console.error('Error fetching orders:', error)
+    return []
+  }
+}
 
 export default async function OrdersPage() {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect('/sign-in')
-  }
-
-  const orders = await prisma.order.findMany({
-    where: {
-      userId: session.user.id,
-    },
-    include: {
-      items: {
-        include: {
-          product: true,
-        },
-      },
-      shippingAddress: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
+  const orders = await getOrders()
 
   return (
-    <div className='space-y-8'>
+    <div className='space-y-6'>
       <div>
-        <h2 className='text-3xl font-bold tracking-tight'>Order History</h2>
+        <h2 className='text-3xl font-bold tracking-tight'>Orders</h2>
         <p className='text-muted-foreground'>
-          View and manage your order history
+          View your order history and track current orders.
         </p>
       </div>
+
       <div className='space-y-4'>
         {orders.length === 0 ? (
-          <p className='text-muted-foreground'>No orders found</p>
+          <p className='text-muted-foreground'>No orders found.</p>
         ) : (
           orders.map((order) => (
-            <Card key={order.id}>
-              <CardContent className='p-6'>
-                <div className='space-y-4'>
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <p className='font-medium'>Order #{order.id.slice(-8)}</p>
-                      <p className='text-sm text-muted-foreground'>
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        order.status === 'DELIVERED'
-                          ? 'default'
-                          : order.status === 'CANCELLED'
-                          ? 'destructive'
-                          : 'secondary'
-                      }
-                      className='capitalize'
-                    >
-                      {order.status.toLowerCase()}
-                    </Badge>
-                  </div>
-                  <div className='divide-y'>
-                    {order.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className='flex items-center justify-between py-4'
-                      >
-                        <div className='flex items-center space-x-4'>
-                          <Image
-                            src={item.product.images[0]}
-                            alt={item.product.name}
-                            width={64}
-                            height={64}
-                            className='h-16 w-16 rounded-md object-cover'
-                          />
-                          <div>
-                            <p className='font-medium'>{item.product.name}</p>
-                            <p className='text-sm text-muted-foreground'>
-                              Quantity: {item.quantity}
-                            </p>
-                          </div>
-                        </div>
-                        <p className='font-medium'>
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className='flex justify-between border-t pt-4'>
-                    <div>
-                      <p className='font-medium'>Shipping Address:</p>
-                      <p className='text-sm text-muted-foreground'>
-                        {order.shippingAddress.street}
-                      </p>
-                      <p className='text-sm text-muted-foreground'>
-                        {order.shippingAddress.city},{' '}
-                        {order.shippingAddress.state}{' '}
-                        {order.shippingAddress.postalCode}
-                      </p>
-                      <p className='text-sm text-muted-foreground'>
-                        {order.shippingAddress.country}
-                      </p>
-                    </div>
-                    <div className='text-right'>
-                      <p className='text-sm text-muted-foreground'>Total</p>
-                      <p className='text-2xl font-bold'>
-                        ${order.total.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div
+              key={order.id}
+              className='flex items-center justify-between p-4 border rounded-lg'
+            >
+              <div>
+                <p className='font-medium'>Order #{order.id.slice(0, 8)}</p>
+                <p className='text-sm text-muted-foreground'>
+                  {order.createdAt.toLocaleDateString()}
+                </p>
+              </div>
+              <div className='text-right'>
+                <p className='font-medium'>${order.total.toFixed(2)}</p>
+                <p className='text-sm text-muted-foreground capitalize'>
+                  {order.status.toLowerCase()}
+                </p>
+              </div>
+            </div>
           ))
         )}
       </div>
