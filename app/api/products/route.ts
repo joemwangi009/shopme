@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     const total = parseInt(countResult.rows[0]?.total as string || '0')
 
     // Get products with pagination
-    query += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
+    query += ` ORDER BY p."createdAt" DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
     params.push(limit, offset)
 
     const result = await db.query(query, params)
@@ -54,8 +54,8 @@ export async function GET(request: Request) {
         id: row.categoryId,
         name: row.category_name,
       },
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      createdAt: row."createdAt",
+      updatedAt: row."updatedAt",
     }))
 
     return NextResponse.json({
