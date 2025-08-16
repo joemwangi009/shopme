@@ -20,7 +20,14 @@ interface Product {
     name: string
   }
   reviews: {
+    id: string
     rating: number
+    comment: string | null
+    createdAt: Date
+    user: {
+      name: string | null
+      image: string | null
+    }
   }[]
 }
 
@@ -50,17 +57,31 @@ async function getProduct(productId: string): Promise<Product | null> {
 
     const row = result.rows[0]
 
-    // Get reviews for this product
+    // Get reviews for this product with user information
     const reviewsResult = await db.query<{
+      id: unknown
       rating: unknown
+      comment: unknown
+      createdAt: unknown
+      user_name: unknown
+      user_image: unknown
     }>(`
-      SELECT rating
-      FROM "Review"
-      WHERE "productId" = $1
+      SELECT r.id, r.rating, r.comment, r."createdAt", u.name as user_name, u.image as user_image
+      FROM "Review" r
+      JOIN "User" u ON r."userId" = u.id
+      WHERE r."productId" = $1
+      ORDER BY r."createdAt" DESC
     `, [productId])
 
     const reviews = reviewsResult.rows.map(review => ({
+      id: review.id as string,
       rating: parseInt(review.rating as string),
+      comment: review.comment as string | null,
+      createdAt: new Date(review.createdAt as string),
+      user: {
+        name: review.user_name as string | null,
+        image: review.user_image as string | null,
+      },
     }))
 
     return {
