@@ -39,10 +39,10 @@ async function getOrder(orderId: string): Promise<Order | null> {
       id: unknown
       total: unknown
       status: unknown
-      created_at: unknown
-      address_id: unknown
+      createdAt: unknown
+      addressId: unknown
     }>(`
-      SELECT id, total, status, created_at, address_id
+      SELECT id, total, status, "createdAt", "addressId"
       FROM "Order"
       WHERE id = $1
     `, [orderId])
@@ -64,8 +64,8 @@ async function getOrder(orderId: string): Promise<Order | null> {
     }>(`
       SELECT oi.id, oi.quantity, oi.price, p.id as product_id, p.name as product_name, p.images as product_images
       FROM "OrderItem" oi
-      JOIN "Product" p ON oi.product_id = p.id
-      WHERE oi.order_id = $1
+      JOIN "Product" p ON oi."productId" = p.id
+      WHERE oi."orderId" = $1
     `, [orderId])
 
     // Get shipping address
@@ -74,13 +74,13 @@ async function getOrder(orderId: string): Promise<Order | null> {
       street: unknown
       city: unknown
       state: unknown
-      postal_code: unknown
+      postalCode: unknown
       country: unknown
     }>(`
-      SELECT id, street, city, state, postal_code, country
+      SELECT id, street, city, state, "postalCode", country
       FROM "Address"
       WHERE id = $1
-    `, [orderRow.address_id as string])
+    `, [orderId])
 
     if (addressResult.rows.length === 0) {
       return null
@@ -92,7 +92,7 @@ async function getOrder(orderId: string): Promise<Order | null> {
       id: orderRow.id as string,
       total: parseFloat(orderRow.total as string),
       status: orderRow.status as string,
-      createdAt: new Date(orderRow.created_at as string),
+      createdAt: new Date(orderRow.createdAt as string),
       items: itemsResult.rows.map(item => ({
         id: item.id as string,
         quantity: parseInt(item.quantity as string),
@@ -108,7 +108,7 @@ async function getOrder(orderId: string): Promise<Order | null> {
         street: addressRow.street as string,
         city: addressRow.city as string,
         state: addressRow.state as string,
-        postalCode: addressRow.postal_code as string,
+        postalCode: addressRow.postalCode as string,
         country: addressRow.country as string,
       },
     }

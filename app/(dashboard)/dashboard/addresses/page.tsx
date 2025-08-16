@@ -26,12 +26,12 @@ async function getAddresses(): Promise<Address[]> {
       postal_code: unknown
       country: unknown
       is_default: unknown
-      created_at: unknown
-      updated_at: unknown
+      createdAt: unknown
+      updatedAt: unknown
     }>(`
-      SELECT id, user_id, street, city, state, postal_code, country, is_default, created_at, updated_at
+      SELECT id, "userId", street, city, state, "postalCode", country, "isDefault", "createdAt", "updatedAt"
       FROM "Address"
-      ORDER BY is_default DESC, created_at DESC
+      ORDER BY "isDefault" DESC, "createdAt" DESC
     `)
 
     return result.rows.map(row => ({
@@ -43,8 +43,8 @@ async function getAddresses(): Promise<Address[]> {
       postalCode: row.postal_code as string,
       country: row.country as string,
       isDefault: row.is_default as boolean,
-      createdAt: new Date(row.created_at as string),
-      updatedAt: new Date(row.updated_at as string),
+      createdAt: new Date(row.createdAt as string),
+      updatedAt: new Date(row.updatedAt as string),
     }))
   } catch (error) {
     console.error('Error fetching addresses:', error)

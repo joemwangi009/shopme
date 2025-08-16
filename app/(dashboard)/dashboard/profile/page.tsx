@@ -25,10 +25,10 @@ async function getUser(): Promise<User | null> {
       email_verified: unknown
       password: unknown
       role: unknown
-      created_at: unknown
-      updated_at: unknown
+      createdAt: unknown
+      updatedAt: unknown
     }>(`
-      SELECT id, name, email, image, email_verified, password, role, created_at, updated_at
+      SELECT id, name, email, image, "emailVerified", password, role, "createdAt", "updatedAt"
       FROM "User"
       LIMIT 1
     `)
@@ -46,8 +46,8 @@ async function getUser(): Promise<User | null> {
       emailVerified: row.email_verified ? new Date(row.email_verified as string) : null,
       password: row.password as string | null,
       role: row.role as 'USER' | 'ADMIN',
-      createdAt: new Date(row.created_at as string),
-      updatedAt: new Date(row.updated_at as string),
+      createdAt: new Date(row.createdAt as string),
+      updatedAt: new Date(row.updatedAt as string),
     }
   } catch (error) {
     console.error('Error fetching user:', error)

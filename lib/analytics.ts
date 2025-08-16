@@ -47,20 +47,20 @@ export async function getRevenueData(days: number = 30): Promise<RevenueData[]> 
     const result = await db.query<DBOrderRevenue>(`
       SELECT 
         total,
-        created_at
+        "createdAt"
       FROM "Order" 
       WHERE 
         status = 'DELIVERED'
-        AND created_at >= $1
-        AND created_at <= $2
-      ORDER BY created_at ASC
+        AND "createdAt" >= $1
+        AND "createdAt" <= $2
+      ORDER BY "createdAt" ASC
     `, [startDate, endDate])
 
     const orders = result.rows
 
     // Group orders by date and calculate daily revenue
     const dailyRevenue = orders.reduce((acc, orderData) => {
-      const date = format(new Date(orderData.created_at as string), 'MMM d')
+      const date = format(new Date(orderData.createdAt as string), 'MMM d')
       acc[date] = (acc[date] || 0) + parseFloat(orderData.total as string)
       return acc
     }, {} as Record<string, number>)
@@ -89,8 +89,8 @@ export async function getOrderStats(): Promise<OrderStat[]> {
         COUNT(*) as count
       FROM "Order"
       WHERE 
-        created_at >= $1
-        AND created_at <= $2
+        "createdAt" >= $1
+        AND "createdAt" <= $2
       GROUP BY status
     `, [startDate, endDate])
 
@@ -111,11 +111,11 @@ export async function getRecentOrders(limit: number = 5): Promise<RecentOrder[]>
         o.id,
         o.total,
         o.status,
-        o.created_at,
+        o."createdAt",
         u.name as user_name
       FROM "Order" o
-      JOIN "User" u ON o.user_id = u.id
-      ORDER BY o.created_at DESC
+      JOIN "User" u ON o."userId" = u.id
+      ORDER BY o."createdAt" DESC
       LIMIT $1
     `, [limit])
 
@@ -123,7 +123,7 @@ export async function getRecentOrders(limit: number = 5): Promise<RecentOrder[]>
       id: order.id as string,
       total: parseFloat(order.total as string),
       status: order.status as string,
-      createdAt: new Date(order.created_at as string),
+      createdAt: new Date(order.createdAt as string),
       user: {
         name: order.user_name as string
       }
@@ -152,7 +152,7 @@ export async function getAdminMetrics() {
         SELECT COALESCE(SUM(total), 0) as total
         FROM "Order" 
         WHERE status = 'DELIVERED' 
-        AND created_at >= $1 AND created_at < $2
+        AND "createdAt" >= $1 AND "createdAt" < $2
       `, [lastMonth, now])
     ])
 
@@ -162,7 +162,7 @@ export async function getAdminMetrics() {
       db.query<{ count: unknown }>(`
         SELECT COUNT(*) as count 
         FROM "Order" 
-        WHERE created_at >= $1 AND created_at < $2
+        WHERE "createdAt" >= $1 AND "createdAt" < $2
       `, [lastHour, now])
     ])
 
@@ -177,7 +177,7 @@ export async function getAdminMetrics() {
         SELECT COUNT(*) as count 
         FROM "User" 
         WHERE role = 'USER' 
-        AND created_at >= $1 AND created_at < $2
+        AND "createdAt" >= $1 AND "createdAt" < $2
       `, [lastMonth, now])
     ])
 
@@ -192,7 +192,7 @@ export async function getAdminMetrics() {
         SELECT COALESCE(AVG(total), 0) as avg
         FROM "Order" 
         WHERE status = 'DELIVERED' 
-        AND created_at >= $1 AND created_at < $2
+        AND "createdAt" >= $1 AND "createdAt" < $2
       `, [lastWeek, now])
     ])
 

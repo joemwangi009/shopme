@@ -13,18 +13,18 @@ async function getOrders(): Promise<Order[]> {
       id: unknown
       total: unknown
       status: unknown
-      created_at: unknown
+      createdAt: unknown
     }>(`
-      SELECT id, total, status, created_at
+      SELECT id, total, status, "createdAt"
       FROM "Order"
-      ORDER BY created_at DESC
+      ORDER BY "createdAt" DESC
     `)
 
     return result.rows.map(row => ({
       id: row.id as string,
       total: parseFloat(row.total as string),
       status: row.status as string,
-      createdAt: new Date(row.created_at as string),
+      createdAt: new Date(row.createdAt as string),
     }))
   } catch (error) {
     console.error('Error fetching orders:', error)

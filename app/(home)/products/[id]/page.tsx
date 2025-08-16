@@ -39,10 +39,10 @@ async function getProduct(productId: string): Promise<Product | null> {
       description: unknown
       price: unknown
       images: unknown
-      category_id: unknown
+      categoryId: unknown
       stock: unknown
-      created_at: unknown
-      updated_at: unknown
+      createdAt: unknown
+      updatedAt: unknown
       category_name: unknown
     }>(`
       SELECT p.*, c.name as category_name
@@ -59,28 +59,15 @@ async function getProduct(productId: string): Promise<Product | null> {
 
     // Get reviews for this product
     const reviewsResult = await db.query<{
-      id: unknown
       rating: unknown
-      comment: unknown
-      created_at: unknown
-      user_name: unknown
-      user_image: unknown
     }>(`
-      SELECT r.id, r.rating, r.comment, r.created_at, u.name as user_name, u.image as user_image
-      FROM "Review" r
-      JOIN "User" u ON r."userId" = u.id
-      WHERE r.product_id = $1
+      SELECT rating
+      FROM "Review"
+      WHERE "productId" = $1
     `, [productId])
 
     const reviews = reviewsResult.rows.map(review => ({
-      id: review.id as string,
       rating: parseInt(review.rating as string),
-      comment: review.comment as string | null,
-      createdAt: new Date(review.created_at as string),
-      user: {
-        name: review.user_name as string | null,
-        image: review.user_image as string | null,
-      },
     }))
 
     return {
@@ -89,12 +76,12 @@ async function getProduct(productId: string): Promise<Product | null> {
       description: row.description as string,
       price: parseFloat(row.price as string),
       images: row.images as string[],
-      categoryId: row.category_id as string,
+      categoryId: row.categoryId as string,
       stock: parseInt(row.stock as string),
-      createdAt: new Date(row.created_at as string),
-      updatedAt: new Date(row.updated_at as string),
+      createdAt: new Date(row.createdAt as string),
+      updatedAt: new Date(row.updatedAt as string),
       category: {
-        id: row.category_id as string,
+        id: row.categoryId as string,
         name: row.category_name as string,
       },
       reviews,

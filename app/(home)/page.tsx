@@ -27,14 +27,14 @@ async function getLatestProducts(): Promise<Product[]> {
       images: unknown
       categoryId: unknown
       stock: unknown
-      created_at: unknown
-      updated_at: unknown
+      createdAt: unknown
+      updatedAt: unknown
       category_name: unknown
     }>(`
-      SELECT p.id, p.name, p.description, p.price, p.images, p."categoryId", p.stock, p.created_at, p.updated_at, c.name as category_name
+      SELECT p.id, p.name, p.description, p.price, p.images, p."categoryId", p.stock, p."createdAt", p."updatedAt", c.name as category_name
       FROM "Product" p
       JOIN "Category" c ON p."categoryId" = c.id
-      ORDER BY p.created_at DESC 
+      ORDER BY p."createdAt" DESC 
       LIMIT 8
     `)
 
@@ -50,8 +50,8 @@ async function getLatestProducts(): Promise<Product[]> {
         id: row.categoryId as string,
         name: row.category_name as string,
       },
-      createdAt: new Date(row.created_at as string),
-      updatedAt: new Date(row.updated_at as string),
+      createdAt: new Date(row.createdAt as string),
+      updatedAt: new Date(row.updatedAt as string),
     }))
   } catch (error) {
     console.error('Error fetching latest products:', error)
