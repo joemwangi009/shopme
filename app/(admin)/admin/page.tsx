@@ -2,13 +2,17 @@ import { MetricsCards } from '@/components/admin/metrics-cards'
 import { RevenueChart } from '@/components/admin/revenue-chart'
 import { OrderStats } from '@/components/admin/order-stats'
 import { RecentOrders } from '@/components/admin/recent-orders'
-import { getRevenueData, getOrderStats, getRecentOrders } from '@/lib/analytics'
+import { getRevenueData, getOrderStats, getRecentOrders, getAdminMetrics } from '@/lib/analytics'
+
+// Force dynamic rendering for admin dashboard
+export const dynamic = 'force-dynamic'
 
 export default async function AdminDashboardPage() {
-  const [revenueData, orderStats, recentOrders] = await Promise.all([
+  const [revenueData, orderStats, recentOrders, metrics] = await Promise.all([
     getRevenueData(),
     getOrderStats(),
     getRecentOrders(5),
+    getAdminMetrics(),
   ])
 
   return (
@@ -19,7 +23,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Key Metrics */}
-      <MetricsCards />
+      <MetricsCards metrics={metrics} />
 
       {/* Charts Grid */}
       <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
