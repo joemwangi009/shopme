@@ -14,8 +14,8 @@ interface Product {
   images: string[]
   categoryId: string
   stock: number
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
   category: {
     id: string
     name: string
