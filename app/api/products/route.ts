@@ -54,8 +54,8 @@ export async function GET(request: Request) {
         id: row.categoryId,
         name: row.category_name,
       },
-      createdAt: row."createdAt",
-      updatedAt: row."updatedAt",
+      createdAt: row['createdAt'],
+      updatedAt: row['updatedAt'],
     }))
 
     return NextResponse.json({
